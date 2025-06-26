@@ -1,41 +1,53 @@
 import { useState, useEffect } from "react"
+import axios from "axios"
 
 export default function Driver() {
-    const [id, setId] = useState('');
     const [name, setName] = useState('');
     const [drivers, setDrivers] = useState([]);
-    const [showDrivers, setShowDrivers] = useState(false);
     const [message, setMessage] = useState('');
 
-    function handleAddDriver() {
-        if (id !== '' && name !== '') {
-            setDrivers(prev => [
-                ...prev,
-                { id, name }
-            ]);
-            setId('');
-            setName('');
+    useEffect(() => {
+        fetchDrivers();
+    }, []);
+
+    async function fetchDrivers() {
+        try {
+            const response = await axios.get("https://localhost:7289/api/Driver/get-drivers");
+            setDrivers(response.data);
+        } catch (err) {
+            setMessage("Error fetching drivers!");
         }
     }
 
-    useEffect(() => {
-        if (drivers.length > 0) {
-            setMessage('New driver added!');
-            const timer = setTimeout(() => setMessage(''), 2000);
-            return () => clearTimeout(timer);
+    async function handleAddDriver() {
+        if (name !== '') {
+            const newDriver = { name };
+            try {
+                await axios.post("https://localhost:7289/api/Driver/add-drivers", [newDriver]);
+                setMessage("New driver added!");
+                setName('');
+                fetchDrivers();
+            } catch (err) {
+                setMessage("Error adding driver!");
+            }
+            setTimeout(() => setMessage(''), 2000);
         }
-    }, [drivers]);
+    }
+
+    async function handleDeleteDriver(id) {
+        try {
+            await axios.delete(`https://localhost:7289/api/Driver/delete-driver/${id}`);
+            setMessage("Driver deleted!");
+            fetchDrivers();
+        } catch (err) {
+            setMessage("Error deleting driver!");
+        }
+        setTimeout(() => setMessage(''), 2000);
+    }
 
     return (
         <div>
-            <div>
-                <label>ID: </label>
-                <input
-                    type="number" min = "0"
-                    value={id}
-                    onChange={e => setId(e.target.value)}
-                />
-            </div>
+            <h2>Add new driver</h2>
             <div>
                 <label>Name: </label>
                 <input
@@ -45,21 +57,29 @@ export default function Driver() {
                 />
             </div>
             <button onClick={handleAddDriver}>Add Driver</button>
-            <button onClick={() => setShowDrivers(!showDrivers)} style={{marginLeft: "10px"}}>
-                Show Drivers
-            </button>
             <hr />
-            {message && <div style={{color: "green"}}>{message}</div>}
-            {showDrivers && (
-                <div>
-                    <h3>All driver names:</h3>
-                    <ul>
-                        {drivers.map((driver, idx) => (
-                            <li key={idx}>{driver.name}</li>
-                        ))}
-                    </ul>
-                </div>
-            )}
+            {message && <div style={{ color: "green" }}>{message}</div>}
+            <h2>Drivers Table</h2>
+            <table border="1" cellPadding="5">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {drivers.map((driver, idx) => (
+                        <tr key={driver.id ? driver.id + '-' + idx : idx}>
+                            <td>{driver.name}</td>
+                            <td>
+                                <button onClick={() => handleDeleteDriver(driver.id)}>
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     )
 }

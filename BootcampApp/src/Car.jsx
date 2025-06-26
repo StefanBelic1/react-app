@@ -1,66 +1,71 @@
 import { useEffect, useState } from "react"
-import Engine from "./Engine"
+import axios from "axios"
 
 export default function Car()
 {
-    const [id, setId] = useState('');
     const [brand, setBrand] = useState('');
     const [numberOfSeats, setNumberOfSeats] = useState('');
     const [mileage, setMileage] = useState('');
     const [yearOfRelease, setYearOfRelease] = useState('');
-    const [cubics, setCubics] = useState('');
 
     const [cars, setCars] = useState([]);
-    const [showCars, setShowCars] = useState(false);
     const [message, setMessage] = useState('');
 
-    function handleAddCar() {
-        if (
-            id !== '' &&
-            brand !== '' &&
-            numberOfSeats !== '' &&
-            mileage !== '' &&
-            yearOfRelease !== '' &&
-            cubics !== ''
-        ) {
-            setCars(prev => [
-                ...prev,
-                {
-                    id,
-                    brand,
-                    numberOfSeats,
-                    mileage,
-                    yearOfRelease,
-                    engine: { cubics }
-                }
-            ]);
-            setId('');
-            setBrand('');
-            setNumberOfSeats('');
-            setMileage('');
-            setYearOfRelease('');
-            setCubics('');
+    useEffect(() => {
+        fetchCars();
+    }, []);
+
+    async function fetchCars() {
+        try {
+            const response = await axios.get("https://localhost:7289/api/Cars/get-cars");
+            setCars(response.data);
+        } catch (err) {
+            setMessage("Error fetching cars!");
         }
     }
 
-    useEffect(() => {
-        if (cars.length > 0) {
-            setMessage('New car added!');
-            const timer = setTimeout(() => setMessage(''), 2000);
-            return () => clearTimeout(timer);
+    async function handleAddCar() {
+        if (
+            brand !== '' &&
+            numberOfSeats !== '' &&
+            mileage !== '' &&
+            yearOfRelease !== ''
+        ) {
+            const newCar = {
+                brand,
+                numberOfSeats: Number(numberOfSeats),
+                mileage: Number(mileage),
+                yearOfRelease: Number(yearOfRelease)
+            };
+            try {
+                await axios.post("https://localhost:7289/api/Cars/add-car", [newCar]);
+                setMessage("New car added!");
+                setBrand('');
+                setNumberOfSeats('');
+                setMileage('');
+                setYearOfRelease('');
+                fetchCars();
+            } catch (err) {
+                setMessage("Error adding car!");
+            }
+            setTimeout(() => setMessage(''), 2000);
         }
-    }, [cars]);
+    }
+
+    async function handleDeleteCar(id) {
+        try {
+            await axios.delete(`https://localhost:7289/api/Cars/delete-car/${id}`);
+            setMessage("Car deleted!");
+            fetchCars();
+        } catch (err) {
+            setMessage("Error deleting car!");
+        }
+        setTimeout(() => setMessage(''), 2000);
+    }
 
     return (
         <div>
-            <div>
-                <label>ID: </label>
-                <input
-                    type="number" min="0"
-                    value={id}
-                    onChange={e => setId(e.target.value)}
-                />
-            </div>
+            <h2>Add new car</h2>
             <div>
                 <label>Brand: </label>
                 <input
@@ -80,7 +85,7 @@ export default function Car()
             <div>
                 <label>Mileage: </label>
                 <input
-                    type="number" min = "0"
+                    type="number" min="0"
                     value={mileage}
                     onChange={e => setMileage(e.target.value)}
                 />
@@ -88,30 +93,41 @@ export default function Car()
             <div>
                 <label>Year of Release: </label>
                 <input
-                    type="number" min ="1900"
+                    type="number" min="1900"
                     value={yearOfRelease}
                     onChange={e => setYearOfRelease(e.target.value)}
                 />
             </div>
-            <Engine cubics={cubics} setCubics={setCubics} />
             <button onClick={handleAddCar}>Add Car</button>
-            <button onClick={() => setShowCars(!showCars)} style={{marginLeft: "10px"}}>
-                Show Cars
-            </button>
             <hr />
-            {message && <div style={{color: "green"}}>{message}</div>}
-            {showCars && (
-                <div>
-                    <h3>All car brands:</h3>
-                    <ul>
-                        {cars.map((car, idx) => (
-                            <li key={idx}>
-                                {car.brand} - Engine: {car.engine.cubics} cubics
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
+            {message && <div style={{ color: "green" }}>{message}</div>}
+            <h2>Cars Table</h2>
+            <table border="1" cellPadding="5">
+                <thead>
+                    <tr>
+                        <th>Brand</th>
+                        <th>Number of Seats</th>
+                        <th>Mileage</th>
+                        <th>Year</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {cars.map((car, idx) => (
+                        <tr key={car.id ? car.id + '-' + idx : idx}>
+                            <td>{car.brand}</td>
+                            <td>{car.numberOfSeats}</td>
+                            <td>{car.mileage}</td>
+                            <td>{car.yearOfRelease}</td>
+                            <td>
+                                <button onClick={() => handleDeleteCar(car.id)}>
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
     )
 }
