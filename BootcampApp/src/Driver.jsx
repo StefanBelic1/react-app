@@ -48,7 +48,7 @@ export default function Driver() {
     return (
         <div>
             <h2>Add new driver</h2>
-            <div>
+            <div className="form-row">
                 <label>Name: </label>
                 <input
                     type="text"
@@ -58,9 +58,9 @@ export default function Driver() {
             </div>
             <button onClick={handleAddDriver}>Add Driver</button>
             <hr />
-            {message && <div style={{ color: "green" }}>{message}</div>}
+            {message && <div className="message">{message}</div>}
             <h2>Drivers Table</h2>
-            <table border="1" cellPadding="5">
+            <table>
                 <thead>
                     <tr>
                         <th>Name</th>

@@ -10,6 +10,8 @@ export default function Car()
 
     const [cars, setCars] = useState([]);
     const [message, setMessage] = useState('');
+    const [editId, setEditId] = useState(null);
+    const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
         fetchCars();
@@ -22,6 +24,24 @@ export default function Car()
         } catch (err) {
             setMessage("Error fetching cars!");
         }
+    }
+
+    function openModal(car = null) {
+        if (car) {
+            setEditId(car.id);
+            setBrand(car.brand);
+            setNumberOfSeats(car.numberOfSeats);
+            setMileage(car.mileage);
+            setYearOfRelease(car.yearOfRelease);
+        } else {
+            resetForm();
+        }
+        setShowModal(true);
+    }
+
+    function closeModal() {
+        resetForm();
+        setShowModal(false);
     }
 
     async function handleAddCar() {
@@ -40,13 +60,36 @@ export default function Car()
             try {
                 await axios.post("https://localhost:7289/api/Cars/add-car", [newCar]);
                 setMessage("New car added!");
-                setBrand('');
-                setNumberOfSeats('');
-                setMileage('');
-                setYearOfRelease('');
+                closeModal();
                 fetchCars();
             } catch (err) {
                 setMessage("Error adding car!");
+            }
+            setTimeout(() => setMessage(''), 2000);
+        }
+    }
+
+    async function handleUpdateCar() {
+        if (
+            brand !== '' &&
+            numberOfSeats !== '' &&
+            mileage !== '' &&
+            yearOfRelease !== ''
+        ) {
+            const updatedCar = {
+                id: editId,
+                brand,
+                numberOfSeats: Number(numberOfSeats),
+                mileage: Number(mileage),
+                yearOfRelease: Number(yearOfRelease)
+            };
+            try {
+                await axios.put(`https://localhost:7289/api/Cars/update-car/${editId}`, updatedCar);
+                setMessage("Car updated!");
+                closeModal();
+                fetchCars();
+            } catch (err) {
+                setMessage("Error updating car!");
             }
             setTimeout(() => setMessage(''), 2000);
         }
@@ -63,46 +106,21 @@ export default function Car()
         setTimeout(() => setMessage(''), 2000);
     }
 
+    function resetForm() {
+        setBrand('');
+        setNumberOfSeats('');
+        setMileage('');
+        setYearOfRelease('');
+        setEditId(null);
+    }
+
     return (
         <div>
-            <h2>Add new car</h2>
-            <div>
-                <label>Brand: </label>
-                <input
-                    type="text"
-                    value={brand}
-                    onChange={e => setBrand(e.target.value)}
-                />
-            </div>
-            <div>
-                <label>Number of Seats: </label>
-                <input
-                    type="number" min="0"
-                    value={numberOfSeats}
-                    onChange={e => setNumberOfSeats(e.target.value)}
-                />
-            </div>
-            <div>
-                <label>Mileage: </label>
-                <input
-                    type="number" min="0"
-                    value={mileage}
-                    onChange={e => setMileage(e.target.value)}
-                />
-            </div>
-            <div>
-                <label>Year of Release: </label>
-                <input
-                    type="number" min="1900"
-                    value={yearOfRelease}
-                    onChange={e => setYearOfRelease(e.target.value)}
-                />
-            </div>
-            <button onClick={handleAddCar}>Add Car</button>
+            <button onClick={() => openModal()}>Add new car</button>
             <hr />
-            {message && <div style={{ color: "green" }}>{message}</div>}
+            {message && <div className="message">{message}</div>}
             <h2>Cars Table</h2>
-            <table border="1" cellPadding="5">
+            <table>
                 <thead>
                     <tr>
                         <th>Brand</th>
@@ -120,7 +138,8 @@ export default function Car()
                             <td>{car.mileage}</td>
                             <td>{car.yearOfRelease}</td>
                             <td>
-                                <button onClick={() => handleDeleteCar(car.id)}>
+                                <button onClick={() => openModal(car)}>Edit</button>
+                                <button style={{marginLeft: 8}} onClick={() => handleDeleteCar(car.id)}>
                                     Delete
                                 </button>
                             </td>
@@ -128,6 +147,59 @@ export default function Car()
                     ))}
                 </tbody>
             </table>
+
+            {showModal && (
+                <div className="modal-backdrop">
+                    <div className="modal">
+                        <h2>{editId ? "Edit car" : "Add new car"}</h2>
+                        <div className="form-row">
+                            <label>Brand: </label>
+                            <input
+                                type="text"
+                                value={brand}
+                                onChange={e => setBrand(e.target.value)}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <label>Number of Seats: </label>
+                            <input
+                                type="number" min="0"
+                                value={numberOfSeats}
+                                onChange={e => setNumberOfSeats(e.target.value)}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <label>Mileage: </label>
+                            <input
+                                type="number" min="0"
+                                value={mileage}
+                                onChange={e => setMileage(e.target.value)}
+                            />
+                        </div>
+                        <div className="form-row">
+                            <label>Year of Release: </label>
+                            <input
+                                type="number" min="1900"
+                                value={yearOfRelease}
+                                onChange={e => setYearOfRelease(e.target.value)}
+                            />
+                        </div>
+                        <div style={{marginTop: 16}}>
+                            {editId ? (
+                                <>
+                                    <button onClick={handleUpdateCar}>Update Car</button>
+                                    <button style={{marginLeft: 10}} onClick={closeModal}>Cancel</button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={handleAddCar}>Add Car</button>
+                                    <button style={{marginLeft: 10}} onClick={closeModal}>Cancel</button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
